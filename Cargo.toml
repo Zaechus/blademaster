@@ -8,3 +8,6 @@ repository = "https://github.com/Maxgy/blademaster"
 license = "MIT"
 
 [dependencies]
+specs = "0.15"
+termion = "1.5"
+tui = "0.8"
