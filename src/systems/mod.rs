@@ -20,7 +20,8 @@ impl<'a> System<'a> for Blademaster {
                 termion::cursor::Goto(1, 1)
             );
             for position in position.join() {
-                println!("pos, {:?}; ", &position);
+                print!("{}", termion::cursor::Goto(position.x(), position.y()));
+                println!("$");
             }
             thread::sleep(Duration::from_millis(100));
         }
