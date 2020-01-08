@@ -11,6 +11,7 @@ fn main() {
 
     let mut dispatcher = DispatcherBuilder::new()
         .with(Blademaster, "blademaster", &[])
+        .with(InputSys, "input_system", &[])
         .build();
 
     dispatcher.dispatch(&mut world);
