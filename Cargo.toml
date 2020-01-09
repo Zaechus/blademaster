@@ -10,4 +10,4 @@ license = "MIT"
 [dependencies]
 specs = "0.15"
 termion = "1.5"
-tui = "0.8"
+term_size = "0.3"
