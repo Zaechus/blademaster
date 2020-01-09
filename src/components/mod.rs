@@ -1,3 +1,3 @@
-mod block;
+mod gamecell;
 
-pub use block::Block;
+pub use gamecell::GameCell;

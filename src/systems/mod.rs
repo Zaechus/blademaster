@@ -1,3 +1,3 @@
 mod term;
 
-pub use term::TermionSystem;
+pub use term::TuiSystem;
