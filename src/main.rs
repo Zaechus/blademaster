@@ -29,6 +29,6 @@ fn main() {
     world.create_entity().with(GameCell::new('#', 5, 6)).build();
     world.create_entity().with(GameCell::new('#', 4, 3)).build();
 
-    dispatcher.dispatch(&mut world);
+    dispatcher.dispatch(&world);
     world.maintain();
 }
