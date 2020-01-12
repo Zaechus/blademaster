@@ -17,19 +17,19 @@ use termion::{
 use tui::{
     backend::TermionBackend,
     layout::{Constraint, Corner, Direction, Layout},
-    style::Color,
-    widgets::{canvas::Canvas, Block, Borders, List, Widget},
+    style::{Color, Style},
+    widgets::{canvas::Canvas, Block, Borders, List, Text, Widget},
     Terminal,
 };
 
-use crate::{types::GameEvents, GameCell};
+use crate::{types::GameEvents, GameCell, Inventory};
 
 pub struct TuiSystem;
 
 impl<'a> System<'a> for TuiSystem {
-    type SystemData = WriteStorage<'a, GameCell>;
+    type SystemData = (WriteStorage<'a, Inventory>, WriteStorage<'a, GameCell>);
 
-    fn run(&mut self, mut gamecells: Self::SystemData) {
+    fn run(&mut self, (mut inventory, mut gamecells): Self::SystemData) {
         let mut terminal =
             Terminal::new(TermionBackend::new(stdout().into_raw_mode().unwrap())).unwrap();
         terminal.hide_cursor().unwrap();
@@ -181,10 +181,16 @@ impl<'a> System<'a> for TuiSystem {
                         .x_bounds([2.0, canvas_width as f64])
                         .y_bounds([2.0, canvas_height as f64])
                         .render(&mut f, top_chunks[0]);
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title("Inventory")
-                        .render(&mut f, top_chunks[1]);
+                    List::new(
+                        vec![
+                            Text::styled("Fake item\n", Style::default().fg(Color::Blue)),
+                            Text::styled("A rock\n", Style::default().fg(Color::Blue)),
+                        ]
+                        .into_iter(),
+                    )
+                    .block(Block::default().borders(Borders::ALL).title("Inventory"))
+                    .start_corner(Corner::TopLeft)
+                    .render(&mut f, top_chunks[1]);
                     List::new(game_events.events().clone().into_iter())
                         .block(Block::default().borders(Borders::ALL).title("Events"))
                         .start_corner(Corner::TopLeft)

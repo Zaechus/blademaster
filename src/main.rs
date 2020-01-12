@@ -8,7 +8,6 @@ fn main() {
     let mut dispatcher = DispatcherBuilder::new()
         .with(TuiSystem, "tui_system", &[])
         .build();
-
     dispatcher.setup(&mut world);
 
     for x in 0..100 {
@@ -26,6 +25,7 @@ fn main() {
         }
     }
 
+    world.create_entity().with(Inventory::new()).build();
     world.create_entity().with(GameCell::new('#', 5, 6)).build();
     world.create_entity().with(GameCell::new('#', 4, 3)).build();
 
