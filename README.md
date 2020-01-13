@@ -1,3 +1,8 @@
 # Blademaster
 
-(IN DEVELOPMENT) A text-based roguelike game written in Rust
+A text-based roguelike game written in Rust
+
+### Running
+```
+cargo run
+```
