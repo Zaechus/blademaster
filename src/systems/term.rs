@@ -38,7 +38,7 @@ impl TuiSystem {
         let term_height = terminal.size().unwrap().height;
         let canvas_width = term_width - 25;
         let canvas_height = term_height - 8;
-        let player_x = (term_width as f64 / 2.0).round();
+        let player_x = (canvas_width as f64 / 2.0).round();
         let player_y = (canvas_height as f64 / 2.0).round();
 
         println!(
