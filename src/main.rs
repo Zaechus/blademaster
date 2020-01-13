@@ -1,34 +1,21 @@
-use specs::prelude::*;
+use legion::prelude::*;
 
 use blademaster::*;
 
 fn main() {
-    let mut world = World::new();
+    let universe = Universe::new();
+    let mut world = universe.create_world();
 
-    let mut dispatcher = DispatcherBuilder::new()
-        .with(TuiSystem, "tui_system", &[])
-        .build();
-    dispatcher.setup(&mut world);
+    let positions = vec![(GameCell::new(4, 3, '#'),)];
+    world.insert((), positions.into_iter());
 
-    for x in 0..100 {
-        world
-            .create_entity()
-            .with(GameCell::new('#', x, 25))
-            .build();
-    }
-    for y in -50..0 {
-        for x in -100..0 {
-            world
-                .create_entity()
-                .with(GameCell::new('#', x, y * 2))
-                .build();
+    let mut positions = Vec::with_capacity(1000);
+    for y in 0..100 {
+        for x in 0..100 {
+            positions.push((GameCell::new(-x, -y, '#'),));
         }
     }
+    world.insert((), positions.into_iter());
 
-    world.create_entity().with(Inventory::new()).build();
-    world.create_entity().with(GameCell::new('#', 5, 6)).build();
-    world.create_entity().with(GameCell::new('#', 4, 3)).build();
-
-    dispatcher.dispatch(&world);
-    world.maintain();
+    TuiSystem::run(&mut world);
 }

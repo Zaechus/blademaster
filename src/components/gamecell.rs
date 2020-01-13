@@ -1,15 +1,13 @@
-use specs::prelude::*;
-
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct GameCell {
-    symbol: char,
     x: i16,
     y: i16,
+    symbol: char,
 }
 
 impl GameCell {
-    pub fn new(symbol: char, x: i16, y: i16) -> Self {
-        Self { symbol, x, y }
+    pub fn new(x: i16, y: i16, symbol: char) -> Self {
+        Self { x, y, symbol }
     }
 
     pub fn move_up(&mut self) {
@@ -29,9 +27,6 @@ impl GameCell {
         self.x >= x1 as i16 && self.y >= y1 as i16 && self.x <= x2 as i16 && self.y <= y2 as i16
     }
 
-    pub fn symbol(&self) -> char {
-        self.symbol
-    }
     pub fn x(&self) -> u16 {
         if self.x > 0 {
             self.x as u16
@@ -46,8 +41,7 @@ impl GameCell {
             1
         }
     }
-}
-
-impl Component for GameCell {
-    type Storage = VecStorage<Self>;
+    pub fn symbol(&self) -> char {
+        self.symbol
+    }
 }

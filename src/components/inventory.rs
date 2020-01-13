@@ -1,9 +1,7 @@
-use specs::prelude::*;
-
 #[derive(Debug, Default)]
 pub struct Inventory {
     cap: usize,
-    contents: Vec<Entity>,
+    contents: Vec<char>,
 }
 
 impl Inventory {
@@ -13,8 +11,4 @@ impl Inventory {
             contents: Vec::with_capacity(10),
         }
     }
-}
-
-impl Component for Inventory {
-    type Storage = VecStorage<Self>;
 }

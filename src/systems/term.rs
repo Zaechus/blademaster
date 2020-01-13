@@ -3,9 +3,7 @@ use std::{
     process,
 };
 
-use rayon::prelude::*;
-
-use specs::prelude::*;
+use legion::prelude::*;
 
 use termion::{
     self, cursor,
@@ -22,14 +20,15 @@ use tui::{
     Terminal,
 };
 
-use crate::{types::GameEvents, GameCell, Inventory};
+use crate::{types::GameEvents, GameCell};
 
 pub struct TuiSystem;
 
-impl<'a> System<'a> for TuiSystem {
-    type SystemData = (WriteStorage<'a, Inventory>, WriteStorage<'a, GameCell>);
+impl TuiSystem {
+    pub fn run(world: &mut World) {
+        let read_query = <(Read<GameCell>,)>::query();
+        let write_query = <(Write<GameCell>,)>::query();
 
-    fn run(&mut self, (mut inventory, mut gamecells): Self::SystemData) {
         let mut terminal =
             Terminal::new(TermionBackend::new(stdout().into_raw_mode().unwrap())).unwrap();
         terminal.hide_cursor().unwrap();
@@ -58,7 +57,7 @@ impl<'a> System<'a> for TuiSystem {
             match event.unwrap() {
                 Event::Key(Key::Up) => {
                     let mut collided = false;
-                    for gamecell in gamecells.join() {
+                    for (gamecell,) in write_query.iter(world) {
                         if (player_x - gamecell.x() as f64).abs() < 1.0
                             && (player_y - (gamecell.y() - 1) as f64).abs() < 1.0
                         {
@@ -68,14 +67,16 @@ impl<'a> System<'a> for TuiSystem {
                         }
                     }
                     if !collided {
-                        (&mut gamecells).par_join().for_each(|gamecell| {
-                            gamecell.move_up();
+                        write_query.par_for_each(world, {
+                            |(mut gamecell,)| {
+                                gamecell.move_up();
+                            }
                         });
                     }
                 }
                 Event::Key(Key::Down) => {
                     let mut collided = false;
-                    for gamecell in gamecells.join() {
+                    for (gamecell,) in write_query.iter(world) {
                         if (player_x - gamecell.x() as f64).abs() < 1.0
                             && (player_y - (gamecell.y() + 1) as f64).abs() < 1.0
                         {
@@ -85,14 +86,16 @@ impl<'a> System<'a> for TuiSystem {
                         }
                     }
                     if !collided {
-                        (&mut gamecells).par_join().for_each(|gamecell| {
-                            gamecell.move_down();
+                        write_query.par_for_each(world, {
+                            |(mut gamecell,)| {
+                                gamecell.move_down();
+                            }
                         });
                     }
                 }
                 Event::Key(Key::Left) => {
                     let mut collided = false;
-                    for gamecell in gamecells.join() {
+                    for (gamecell,) in write_query.iter(world) {
                         if (player_x - (gamecell.x() + 1) as f64).abs() < 1.0
                             && (player_y - gamecell.y() as f64).abs() < 1.0
                         {
@@ -102,14 +105,16 @@ impl<'a> System<'a> for TuiSystem {
                         }
                     }
                     if !collided {
-                        (&mut gamecells).par_join().for_each(|gamecell| {
-                            gamecell.move_right();
+                        write_query.par_for_each(world, {
+                            |(mut gamecell,)| {
+                                gamecell.move_right();
+                            }
                         });
                     }
                 }
                 Event::Key(Key::Right) => {
                     let mut collided = false;
-                    for gamecell in gamecells.join() {
+                    for (gamecell,) in write_query.iter(world) {
                         if (player_x - (gamecell.x() - 1) as f64).abs() < 1.0
                             && (player_y - gamecell.y() as f64).abs() < 1.0
                         {
@@ -119,8 +124,10 @@ impl<'a> System<'a> for TuiSystem {
                         }
                     }
                     if !collided {
-                        (&mut gamecells).par_join().for_each(|gamecell| {
-                            gamecell.move_left();
+                        write_query.par_for_each(world, {
+                            |(mut gamecell,)| {
+                                gamecell.move_left();
+                            }
                         });
                     }
                 }
@@ -167,7 +174,7 @@ impl<'a> System<'a> for TuiSystem {
                         .block(Block::default().borders(Borders::ALL).title("Game"))
                         .paint(|ctx| {
                             ctx.print(player_x, player_y, "@", Color::Rgb(0, 255, 0));
-                            for gamecell in gamecells.join() {
+                            for (gamecell,) in read_query.iter_immutable(&world) {
                                 if gamecell.inside(1, 1, term_width, term_height) {
                                     ctx.print(
                                         gamecell.x() as f64,
