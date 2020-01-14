@@ -49,8 +49,30 @@ fn main() {
                     Color::Gray,
                     CellAccess::Impassable,
                 ),));
+            } else {
+                positions.push((GameCell::new(
+                    x as i16 + 10,
+                    y as i16 + 5,
+                    CellKind::Floor,
+                    "floor",
+                    Color::Gray,
+                    CellAccess::Static,
+                ),));
             }
         }
+    }
+    world.insert((), positions.into_iter());
+
+    let mut positions = Vec::with_capacity(70);
+    for x in 0..100 {
+        positions.push((GameCell::new(
+            x as i16,
+            15,
+            CellKind::Floor,
+            "floor",
+            Color::Gray,
+            CellAccess::Static,
+        ),));
     }
     world.insert((), positions.into_iter());
 

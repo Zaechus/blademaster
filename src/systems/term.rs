@@ -21,7 +21,7 @@ use tui::{
     Terminal,
 };
 
-use crate::{CellAccess, CellKind, GameCell, GameEvents, Inventory, Player};
+use crate::{CellAccess, CellKind, CellVisibility, GameCell, GameEvents, Inventory, Player};
 
 pub struct TuiSystem;
 
@@ -84,6 +84,16 @@ impl TuiSystem {
                     if !collided {
                         write_query.par_for_each(world, {
                             |(mut gamecell,)| {
+                                if gamecell.inside(
+                                    player.x() as u16 - 5,
+                                    player.y() as u16 - 5,
+                                    player.x() as u16 + 5,
+                                    player.y() as u16 + 5,
+                                ) {
+                                    gamecell.set_visible(CellVisibility::Visible);
+                                } else if gamecell.visible() == CellVisibility::Visible {
+                                    gamecell.set_visible(CellVisibility::Dark);
+                                }
                                 gamecell.move_up();
                             }
                         });
@@ -112,6 +122,16 @@ impl TuiSystem {
                     if !collided {
                         write_query.par_for_each(world, {
                             |(mut gamecell,)| {
+                                if gamecell.inside(
+                                    player.x() as u16 - 5,
+                                    player.y() as u16 - 5,
+                                    player.x() as u16 + 5,
+                                    player.y() as u16 + 5,
+                                ) {
+                                    gamecell.set_visible(CellVisibility::Visible);
+                                } else if gamecell.visible() == CellVisibility::Visible {
+                                    gamecell.set_visible(CellVisibility::Dark);
+                                }
                                 gamecell.move_down();
                             }
                         });
@@ -140,6 +160,16 @@ impl TuiSystem {
                     if !collided {
                         write_query.par_for_each(world, {
                             |(mut gamecell,)| {
+                                if gamecell.inside(
+                                    player.x() as u16 - 5,
+                                    player.y() as u16 - 5,
+                                    player.x() as u16 + 5,
+                                    player.y() as u16 + 5,
+                                ) {
+                                    gamecell.set_visible(CellVisibility::Visible);
+                                } else if gamecell.visible() == CellVisibility::Visible {
+                                    gamecell.set_visible(CellVisibility::Dark);
+                                }
                                 gamecell.move_right();
                             }
                         });
@@ -168,6 +198,16 @@ impl TuiSystem {
                     if !collided {
                         write_query.par_for_each(world, {
                             |(mut gamecell,)| {
+                                if gamecell.inside(
+                                    player.x() as u16 - 5,
+                                    player.y() as u16 - 5,
+                                    player.x() as u16 + 5,
+                                    player.y() as u16 + 5,
+                                ) {
+                                    gamecell.set_visible(CellVisibility::Visible);
+                                } else if gamecell.visible() == CellVisibility::Visible {
+                                    gamecell.set_visible(CellVisibility::Dark);
+                                }
                                 gamecell.move_left();
                             }
                         });
@@ -226,7 +266,9 @@ impl TuiSystem {
                         .block(Block::default().borders(Borders::ALL).title("Game"))
                         .paint(|ctx| {
                             for (gamecell,) in read_query.iter_immutable(world) {
-                                if gamecell.inside(1, 1, term_width, term_height) {
+                                if gamecell.visible() != CellVisibility::Unvisited
+                                    && gamecell.inside(1, 1, term_width, term_height)
+                                {
                                     let symbol = match gamecell.kind() {
                                         CellKind::SoftArmor => "(",
                                         CellKind::HardArmor => "[",
@@ -237,13 +279,23 @@ impl TuiSystem {
                                         CellKind::ClosedDoor => "+",
                                         CellKind::OpenedDoor => "'",
                                         CellKind::Wall => "#",
+                                        CellKind::Floor => ".",
                                     };
-                                    ctx.print(
-                                        gamecell.x() as f64,
-                                        gamecell.y() as f64,
-                                        symbol,
-                                        gamecell.color(),
-                                    );
+                                    if gamecell.visible() == CellVisibility::Visible {
+                                        ctx.print(
+                                            gamecell.x() as f64,
+                                            gamecell.y() as f64,
+                                            symbol,
+                                            gamecell.color(),
+                                        );
+                                    } else {
+                                        ctx.print(
+                                            gamecell.x() as f64,
+                                            gamecell.y() as f64,
+                                            symbol,
+                                            Color::DarkGray,
+                                        );
+                                    }
                                 }
                             }
                             ctx.print(player.x(), player.y(), "@", Color::Rgb(0, 255, 0));
