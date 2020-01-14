@@ -4,3 +4,4 @@ mod types;
 
 pub use components::*;
 pub use systems::*;
+pub use types::*;

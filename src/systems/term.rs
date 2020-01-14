@@ -1,5 +1,6 @@
 use std::{
     io::{stdin, stdout},
+    ops::Deref,
     process,
 };
 
@@ -15,12 +16,12 @@ use termion::{
 use tui::{
     backend::TermionBackend,
     layout::{Constraint, Corner, Direction, Layout},
-    style::{Color, Style},
-    widgets::{canvas::Canvas, Block, Borders, List, Text, Widget},
+    style::Color,
+    widgets::{canvas::Canvas, Block, Borders, List, Widget},
     Terminal,
 };
 
-use crate::{types::GameEvents, GameCell};
+use crate::{CellAccess, CellKind, GameCell, GameEvents, Inventory, Player};
 
 pub struct TuiSystem;
 
@@ -38,8 +39,6 @@ impl TuiSystem {
         let term_height = terminal.size().unwrap().height;
         let canvas_width = term_width - 25;
         let canvas_height = term_height - 8;
-        let player_x = (canvas_width as f64 / 2.0).round();
-        let player_y = (canvas_height as f64 / 2.0).round();
 
         println!(
             "{}Welcome to {}{}Blademaster{}{}{}",
@@ -51,17 +50,33 @@ impl TuiSystem {
             cursor::Goto(1, 1)
         );
 
+        let player = Player::new(
+            (canvas_width as f64 / 2.0).round(),
+            (canvas_height as f64 / 2.0).round(),
+        );
+
         let mut game_events = GameEvents::new();
+
+        let mut inventory = Inventory::new();
 
         for event in stdin().events() {
             match event.unwrap() {
                 Event::Key(Key::Up) => {
                     let mut collided = false;
-                    for (gamecell,) in write_query.iter(world) {
-                        if (player_x - gamecell.x() as f64).abs() < 1.0
-                            && (player_y - (gamecell.y() - 1) as f64).abs() < 1.0
+                    for (gamecell,) in read_query.iter_immutable(world) {
+                        if gamecell.access() == CellAccess::Impassable
+                            && (player.x() - gamecell.x() as f64).abs() < 1.0
+                            && (player.y() - (gamecell.y() - 1) as f64).abs() < 1.0
                         {
-                            game_events.post_wall_event();
+                            game_events.post_event(
+                                format!(
+                                    "You ran into the {}.{space:>width$}",
+                                    gamecell.name(),
+                                    space = " ",
+                                    width = canvas_width as usize / 2,
+                                ),
+                                Color::Blue,
+                            );
                             collided = true;
                             break;
                         }
@@ -76,11 +91,20 @@ impl TuiSystem {
                 }
                 Event::Key(Key::Down) => {
                     let mut collided = false;
-                    for (gamecell,) in write_query.iter(world) {
-                        if (player_x - gamecell.x() as f64).abs() < 1.0
-                            && (player_y - (gamecell.y() + 1) as f64).abs() < 1.0
+                    for (gamecell,) in read_query.iter_immutable(world) {
+                        if gamecell.access() == CellAccess::Impassable
+                            && (player.x() - gamecell.x() as f64).abs() < 1.0
+                            && (player.y() - (gamecell.y() + 1) as f64).abs() < 1.0
                         {
-                            game_events.post_wall_event();
+                            game_events.post_event(
+                                format!(
+                                    "You ran into the {}.{space:>width$}",
+                                    gamecell.name(),
+                                    space = " ",
+                                    width = canvas_width as usize / 2,
+                                ),
+                                Color::Blue,
+                            );
                             collided = true;
                             break;
                         }
@@ -95,11 +119,20 @@ impl TuiSystem {
                 }
                 Event::Key(Key::Left) => {
                     let mut collided = false;
-                    for (gamecell,) in write_query.iter(world) {
-                        if (player_x - (gamecell.x() + 1) as f64).abs() < 1.0
-                            && (player_y - gamecell.y() as f64).abs() < 1.0
+                    for (gamecell,) in read_query.iter_immutable(world) {
+                        if gamecell.access() == CellAccess::Impassable
+                            && (player.x() - (gamecell.x() + 1) as f64).abs() < 1.0
+                            && (player.y() - gamecell.y() as f64).abs() < 1.0
                         {
-                            game_events.post_wall_event();
+                            game_events.post_event(
+                                format!(
+                                    "You ran into the {}.{space:>width$}",
+                                    gamecell.name(),
+                                    space = " ",
+                                    width = canvas_width as usize / 2,
+                                ),
+                                Color::Blue,
+                            );
                             collided = true;
                             break;
                         }
@@ -114,11 +147,20 @@ impl TuiSystem {
                 }
                 Event::Key(Key::Right) => {
                     let mut collided = false;
-                    for (gamecell,) in write_query.iter(world) {
-                        if (player_x - (gamecell.x() - 1) as f64).abs() < 1.0
-                            && (player_y - gamecell.y() as f64).abs() < 1.0
+                    for (gamecell,) in read_query.iter_immutable(world) {
+                        if gamecell.access() == CellAccess::Impassable
+                            && (player.x() - (gamecell.x() - 1) as f64).abs() < 1.0
+                            && (player.y() - gamecell.y() as f64).abs() < 1.0
                         {
-                            game_events.post_wall_event();
+                            game_events.post_event(
+                                format!(
+                                    "You ran into the {}.{space:>width$}",
+                                    gamecell.name(),
+                                    space = " ",
+                                    width = canvas_width as usize / 2,
+                                ),
+                                Color::Blue,
+                            );
                             collided = true;
                             break;
                         }
@@ -138,6 +180,16 @@ impl TuiSystem {
                 }
                 _ => (),
             }
+
+            TuiSystem::take_items(
+                world,
+                &mut game_events,
+                &mut inventory,
+                &player,
+                term_width,
+                term_height,
+                canvas_width,
+            );
 
             terminal
                 .draw(|mut f| {
@@ -173,31 +225,36 @@ impl TuiSystem {
                     Canvas::default()
                         .block(Block::default().borders(Borders::ALL).title("Game"))
                         .paint(|ctx| {
-                            ctx.print(player_x, player_y, "@", Color::Rgb(0, 255, 0));
-                            for (gamecell,) in read_query.iter_immutable(&world) {
+                            for (gamecell,) in read_query.iter_immutable(world) {
                                 if gamecell.inside(1, 1, term_width, term_height) {
+                                    let symbol = match gamecell.kind() {
+                                        CellKind::SoftArmor => "(",
+                                        CellKind::HardArmor => "[",
+                                        CellKind::BluntWeapon => "\\",
+                                        CellKind::EdgedWeapon => "|",
+                                        CellKind::PointedWeapon => "/",
+                                        CellKind::RangedWeapon => "}",
+                                        CellKind::ClosedDoor => "+",
+                                        CellKind::OpenedDoor => "'",
+                                        CellKind::Wall => "#",
+                                    };
                                     ctx.print(
                                         gamecell.x() as f64,
                                         gamecell.y() as f64,
-                                        "#",
-                                        Color::Gray,
+                                        symbol,
+                                        gamecell.color(),
                                     );
                                 }
                             }
+                            ctx.print(player.x(), player.y(), "@", Color::Rgb(0, 255, 0));
                         })
                         .x_bounds([2.0, canvas_width as f64])
                         .y_bounds([2.0, canvas_height as f64])
                         .render(&mut f, top_chunks[0]);
-                    List::new(
-                        vec![
-                            Text::styled("Fake item\n", Style::default().fg(Color::Blue)),
-                            Text::styled("A rock\n", Style::default().fg(Color::Blue)),
-                        ]
-                        .into_iter(),
-                    )
-                    .block(Block::default().borders(Borders::ALL).title("Inventory"))
-                    .start_corner(Corner::TopLeft)
-                    .render(&mut f, top_chunks[1]);
+                    List::new(inventory.list().into_iter())
+                        .block(Block::default().borders(Borders::ALL).title("Inventory"))
+                        .start_corner(Corner::TopLeft)
+                        .render(&mut f, top_chunks[1]);
                     List::new(game_events.events().clone().into_iter())
                         .block(Block::default().borders(Borders::ALL).title("Events"))
                         .start_corner(Corner::TopLeft)
@@ -208,6 +265,43 @@ impl TuiSystem {
                         .render(&mut f, bottom_chunks[1]);
                 })
                 .unwrap();
+        }
+    }
+
+    fn take_items(
+        world: &mut World,
+        game_events: &mut GameEvents,
+        inventory: &mut Inventory,
+        player: &Player,
+        term_width: u16,
+        term_height: u16,
+        canvas_width: u16,
+    ) {
+        let read_query = <(Read<GameCell>,)>::query();
+
+        let mut taken = None;
+        for (entity, (gamecell,)) in read_query.iter_entities_immutable(world) {
+            if gamecell.access() == CellAccess::Takeable
+                && gamecell.inside(1, 1, term_width, term_height)
+                && (player.x() - gamecell.x() as f64).abs() < 1.0
+                && (player.y() - gamecell.y() as f64).abs() < 1.0
+            {
+                game_events.post_event(
+                    format!(
+                        "You now have the {}.{space:>width$}",
+                        gamecell.name(),
+                        space = " ",
+                        width = canvas_width as usize / 2,
+                    ),
+                    Color::Green,
+                );
+                inventory.take(gamecell.deref().clone());
+                taken = Some(entity);
+                break;
+            }
+        }
+        if let Some(entity) = taken {
+            world.delete(entity);
         }
     }
 }

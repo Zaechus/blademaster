@@ -1,13 +1,34 @@
-#[derive(Clone, Copy, Debug, PartialEq)]
+use tui::style::Color;
+
+use crate::{CellAccess, CellKind};
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct GameCell {
     x: i16,
     y: i16,
-    symbol: char,
+    kind: CellKind,
+    name: String,
+    color: Color,
+    access: CellAccess,
 }
 
 impl GameCell {
-    pub fn new(x: i16, y: i16, symbol: char) -> Self {
-        Self { x, y, symbol }
+    pub fn new(
+        x: i16,
+        y: i16,
+        kind: CellKind,
+        name: &str,
+        color: Color,
+        access: CellAccess,
+    ) -> Self {
+        Self {
+            x,
+            y,
+            kind,
+            name: name.to_string(),
+            color,
+            access,
+        }
     }
 
     pub fn move_up(&mut self) {
@@ -41,7 +62,16 @@ impl GameCell {
             1
         }
     }
-    pub fn symbol(&self) -> char {
-        self.symbol
+    pub fn kind(&self) -> CellKind {
+        self.kind
+    }
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+    pub fn color(&self) -> Color {
+        self.color
+    }
+    pub fn access(&self) -> CellAccess {
+        self.access
     }
 }

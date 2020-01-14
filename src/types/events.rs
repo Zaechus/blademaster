@@ -5,6 +5,7 @@ use tui::{
     widgets::Text,
 };
 
+#[derive(Clone, Default, Debug)]
 pub struct GameEvents<'a> {
     events: VecDeque<Text<'a>>,
 }
@@ -18,12 +19,10 @@ impl<'a> GameEvents<'a> {
         Self { events }
     }
 
-    pub fn post_wall_event(&mut self) {
+    pub fn post_event(&mut self, content: String, color: Color) {
         self.events.pop_front();
-        self.events.push_back(Text::styled(
-            "You ran into a wall.\n",
-            Style::default().fg(Color::Blue),
-        ));
+        self.events
+            .push_back(Text::styled(content, Style::default().fg(color)));
     }
 
     pub fn events(&self) -> &VecDeque<Text<'a>> {
