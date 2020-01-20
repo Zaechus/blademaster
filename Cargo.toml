@@ -8,6 +8,7 @@ repository = "https://github.com/Maxgy/blademaster"
 license = "MIT"
 
 [dependencies]
+crossterm = "0.14"
 legion = "0.2"
-termion = "1.5"
-tui = "0.8"
+rand = "0.7"
+tui = { version = "0.8", default-features = false, features = ["crossterm"] }
