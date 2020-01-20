@@ -325,9 +325,9 @@ impl TuiSystem {
                         .block(Block::default().borders(Borders::ALL).title("Events"))
                         .start_corner(Corner::TopLeft)
                         .render(&mut f, bottom_chunks[0]);
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title("Player")
+                    List::new(player.list().into_iter())
+                        .block(Block::default().borders(Borders::ALL).title("Player"))
+                        .start_corner(Corner::TopLeft)
                         .render(&mut f, bottom_chunks[1]);
                 })
                 .unwrap();
