@@ -1,6 +1,6 @@
 use tui::style::Color;
 
-use crate::{CellAccess, CellKind, CellVisibility};
+use crate::{CellAccess, CellKind};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct GameCell {
@@ -10,7 +10,6 @@ pub struct GameCell {
     name: String,
     color: Color,
     access: CellAccess,
-    visible: CellVisibility,
 }
 
 impl GameCell {
@@ -29,7 +28,6 @@ impl GameCell {
             name: name.to_string(),
             color,
             access,
-            visible: CellVisibility::Unvisited,
         }
     }
 
@@ -46,8 +44,10 @@ impl GameCell {
         self.x += 1;
     }
 
-    pub fn inside(&self, x1: u16, y1: u16, x2: u16, y2: u16) -> bool {
-        self.x >= x1 as i16 && self.y >= y1 as i16 && self.x <= x2 as i16 && self.y <= y2 as i16
+    pub fn inside(&self, x1: u16, y1: u16, x2: u16, y2: u16, offset_x: i16, offset_y: i16) -> bool {
+        let x = self.x + offset_x;
+        let y = self.y + offset_y;
+        x >= x1 as i16 && y >= y1 as i16 && x <= x2 as i16 && y <= y2 as i16
     }
 
     pub fn x(&self) -> u16 {
@@ -75,11 +75,5 @@ impl GameCell {
     }
     pub fn access(&self) -> CellAccess {
         self.access
-    }
-    pub fn visible(&self) -> CellVisibility {
-        self.visible
-    }
-    pub fn set_visible(&mut self, visible: CellVisibility) {
-        self.visible = visible;
     }
 }

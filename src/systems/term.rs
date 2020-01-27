@@ -4,7 +4,7 @@ use std::{
     process,
 };
 
-use legion::prelude::*;
+use legion::{prelude::*, query};
 
 use crossterm::{
     event::{self, Event, KeyCode},
@@ -26,8 +26,8 @@ pub struct TuiSystem;
 
 impl TuiSystem {
     pub fn run(world: &mut World) {
-        let read_query = <(Read<GameCell>,)>::query();
-        let write_query = <(legion::query::Write<GameCell>,)>::query();
+        let read_query = <(Read<GameCell>, Read<CellVisibility>)>::query();
+        let write_query = <(Read<GameCell>, query::Write<CellVisibility>)>::query();
 
         enable_raw_mode().unwrap();
 
@@ -52,15 +52,18 @@ impl TuiSystem {
 
         let mut inventory = Inventory::new();
 
+        let mut offset_x = 0.0;
+        let mut offset_y = 0.0;
+
         loop {
             if let Event::Key(key) = event::read().unwrap() {
                 match key.code {
                     KeyCode::Up => {
                         let mut collided = false;
-                        for (gamecell,) in read_query.iter_immutable(world) {
+                        for (gamecell, _) in read_query.iter_immutable(world) {
                             if gamecell.access() == CellAccess::Impassable
-                                && (player.x() - gamecell.x() as f64).abs() < 1.0
-                                && (player.y() - (gamecell.y() - 1) as f64).abs() < 1.0
+                                && (player.x() - gamecell.x() as f64 - offset_x).abs() < 1.0
+                                && (player.y() - (gamecell.y() - 1) as f64 - offset_y).abs() < 1.0
                             {
                                 game_events.post_event(
                                     format!(
@@ -76,29 +79,15 @@ impl TuiSystem {
                             }
                         }
                         if !collided {
-                            write_query.par_for_each(world, {
-                                |(mut gamecell,)| {
-                                    if gamecell.inside(
-                                        player.x() as u16 - 5,
-                                        player.y() as u16 - 5,
-                                        player.x() as u16 + 5,
-                                        player.y() as u16 + 5,
-                                    ) {
-                                        gamecell.set_visible(CellVisibility::Visible);
-                                    } else if gamecell.visible() == CellVisibility::Visible {
-                                        gamecell.set_visible(CellVisibility::Dark);
-                                    }
-                                    gamecell.move_up();
-                                }
-                            });
+                            offset_y -= 1.0;
                         }
                     }
                     KeyCode::Down => {
                         let mut collided = false;
-                        for (gamecell,) in read_query.iter_immutable(world) {
+                        for (gamecell, _) in read_query.iter_immutable(world) {
                             if gamecell.access() == CellAccess::Impassable
-                                && (player.x() - gamecell.x() as f64).abs() < 1.0
-                                && (player.y() - (gamecell.y() + 1) as f64).abs() < 1.0
+                                && (player.x() - gamecell.x() as f64 - offset_x).abs() < 1.0
+                                && (player.y() - (gamecell.y() + 1) as f64 - offset_y).abs() < 1.0
                             {
                                 game_events.post_event(
                                     format!(
@@ -114,29 +103,15 @@ impl TuiSystem {
                             }
                         }
                         if !collided {
-                            write_query.par_for_each(world, {
-                                |(mut gamecell,)| {
-                                    if gamecell.inside(
-                                        player.x() as u16 - 5,
-                                        player.y() as u16 - 5,
-                                        player.x() as u16 + 5,
-                                        player.y() as u16 + 5,
-                                    ) {
-                                        gamecell.set_visible(CellVisibility::Visible);
-                                    } else if gamecell.visible() == CellVisibility::Visible {
-                                        gamecell.set_visible(CellVisibility::Dark);
-                                    }
-                                    gamecell.move_down();
-                                }
-                            });
+                            offset_y += 1.0;
                         }
                     }
                     KeyCode::Left => {
                         let mut collided = false;
-                        for (gamecell,) in read_query.iter_immutable(world) {
+                        for (gamecell, _) in read_query.iter_immutable(world) {
                             if gamecell.access() == CellAccess::Impassable
-                                && (player.x() - (gamecell.x() + 1) as f64).abs() < 1.0
-                                && (player.y() - gamecell.y() as f64).abs() < 1.0
+                                && (player.x() - (gamecell.x() + 1) as f64 - offset_x).abs() < 1.0
+                                && (player.y() - gamecell.y() as f64 - offset_y).abs() < 1.0
                             {
                                 game_events.post_event(
                                     format!(
@@ -152,29 +127,15 @@ impl TuiSystem {
                             }
                         }
                         if !collided {
-                            write_query.par_for_each(world, {
-                                |(mut gamecell,)| {
-                                    if gamecell.inside(
-                                        player.x() as u16 - 5,
-                                        player.y() as u16 - 5,
-                                        player.x() as u16 + 5,
-                                        player.y() as u16 + 5,
-                                    ) {
-                                        gamecell.set_visible(CellVisibility::Visible);
-                                    } else if gamecell.visible() == CellVisibility::Visible {
-                                        gamecell.set_visible(CellVisibility::Dark);
-                                    }
-                                    gamecell.move_right();
-                                }
-                            });
+                            offset_x += 1.0;
                         }
                     }
                     KeyCode::Right => {
                         let mut collided = false;
-                        for (gamecell,) in read_query.iter_immutable(world) {
+                        for (gamecell, _) in read_query.iter_immutable(world) {
                             if gamecell.access() == CellAccess::Impassable
-                                && (player.x() - (gamecell.x() - 1) as f64).abs() < 1.0
-                                && (player.y() - gamecell.y() as f64).abs() < 1.0
+                                && (player.x() - (gamecell.x() - 1) as f64 - offset_x).abs() < 1.0
+                                && (player.y() - gamecell.y() as f64 - offset_y).abs() < 1.0
                             {
                                 game_events.post_event(
                                     format!(
@@ -190,21 +151,7 @@ impl TuiSystem {
                             }
                         }
                         if !collided {
-                            write_query.par_for_each(world, {
-                                |(mut gamecell,)| {
-                                    if gamecell.inside(
-                                        player.x() as u16 - 5,
-                                        player.y() as u16 - 5,
-                                        player.x() as u16 + 5,
-                                        player.y() as u16 + 5,
-                                    ) {
-                                        gamecell.set_visible(CellVisibility::Visible);
-                                    } else if gamecell.visible() == CellVisibility::Visible {
-                                        gamecell.set_visible(CellVisibility::Dark);
-                                    }
-                                    gamecell.move_left();
-                                }
-                            });
+                            offset_x -= 1.0;
                         }
                     }
                     KeyCode::Char('q') => {
@@ -218,14 +165,34 @@ impl TuiSystem {
                 }
             }
 
-            let read_query = <(Read<GameCell>,)>::query();
+            for (gamecell, mut visible) in write_query.iter(world) {
+                if gamecell.inside(
+                    player.x() as u16 - 3,
+                    player.y() as u16 - 3,
+                    player.x() as u16 + 3,
+                    player.y() as u16 + 3,
+                    offset_x as i16,
+                    offset_y as i16,
+                ) {
+                    *visible = CellVisibility::Visible;
+                } else if *visible == CellVisibility::Visible {
+                    *visible = CellVisibility::Dark;
+                }
+            }
 
             let mut taken = None;
-            for (entity, (gamecell,)) in read_query.iter_entities_immutable(world) {
+            for (entity, (gamecell, _)) in read_query.iter_entities_immutable(world) {
                 if gamecell.access() == CellAccess::Takeable
-                    && gamecell.inside(1, 1, term_width, term_height)
-                    && (player.x() - gamecell.x() as f64).abs() < 1.0
-                    && (player.y() - gamecell.y() as f64).abs() < 1.0
+                    && gamecell.inside(
+                        1,
+                        1,
+                        term_width,
+                        term_height,
+                        offset_x as i16,
+                        offset_y as i16,
+                    )
+                    && (player.x() - gamecell.x() as f64 - offset_x).abs() < 1.0
+                    && (player.y() - gamecell.y() as f64 - offset_y).abs() < 1.0
                 {
                     game_events.post_event(
                         format!(
@@ -279,9 +246,16 @@ impl TuiSystem {
                     Canvas::default()
                         .block(Block::default().borders(Borders::ALL).title("Game"))
                         .paint(|ctx| {
-                            for (gamecell,) in read_query.iter_immutable(world) {
-                                if gamecell.visible() != CellVisibility::Unvisited
-                                    && gamecell.inside(1, 1, term_width, term_height)
+                            for (gamecell, visible) in read_query.iter_immutable(world) {
+                                if *visible != CellVisibility::Unvisited
+                                    && gamecell.inside(
+                                        1,
+                                        1,
+                                        term_width,
+                                        term_height,
+                                        offset_x as i16,
+                                        offset_y as i16,
+                                    )
                                 {
                                     let symbol = match gamecell.kind() {
                                         CellKind::SoftArmor => "(",
@@ -295,17 +269,17 @@ impl TuiSystem {
                                         CellKind::Wall => "#",
                                         CellKind::Floor => ".",
                                     };
-                                    if gamecell.visible() == CellVisibility::Visible {
+                                    if *visible == CellVisibility::Visible {
                                         ctx.print(
-                                            gamecell.x() as f64,
-                                            gamecell.y() as f64,
+                                            gamecell.x() as f64 + offset_x,
+                                            gamecell.y() as f64 + offset_y,
                                             symbol,
                                             gamecell.color(),
                                         );
                                     } else {
                                         ctx.print(
-                                            gamecell.x() as f64,
-                                            gamecell.y() as f64,
+                                            gamecell.x() as f64 + offset_x,
+                                            gamecell.y() as f64 + offset_y,
                                             symbol,
                                             Color::DarkGray,
                                         );
