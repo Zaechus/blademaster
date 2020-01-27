@@ -6,6 +6,8 @@ authors = ["Maxwell Anderson <maxwell.brayden.anderson@gmail.com>"]
 edition = "2018"
 repository = "https://github.com/Maxgy/blademaster"
 license = "MIT"
+keywords = ["text", "game", "dungeon", "rogue", "roguelike"]
+categories = ["games", "game-engines"]
 
 [dependencies]
 crossterm = "0.14"
