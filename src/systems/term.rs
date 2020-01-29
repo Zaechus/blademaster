@@ -43,17 +43,14 @@ impl TuiSystem {
         let canvas_width = term_width - 25;
         let canvas_height = term_height - 8;
 
-        let player = Player::new(
-            (canvas_width as f64 / 2.0).round(),
-            (canvas_height as f64 / 2.0).round(),
-        );
+        let player = Player::new(canvas_width as i32 / 2, canvas_height as i32 / 2);
 
         let mut game_events = GameEvents::new();
 
         let mut inventory = Inventory::new();
 
-        let mut offset_x = 0.0;
-        let mut offset_y = 0.0;
+        let mut offset_x = 0;
+        let mut offset_y = 0;
 
         loop {
             if let Event::Key(key) = event::read().unwrap() {
@@ -62,8 +59,8 @@ impl TuiSystem {
                         let mut collided = false;
                         for (gamecell, _) in read_query.iter_immutable(world) {
                             if gamecell.access() == CellAccess::Impassable
-                                && (player.x() - gamecell.x() as f64 - offset_x).abs() < 1.0
-                                && (player.y() - (gamecell.y() - 1) as f64 - offset_y).abs() < 1.0
+                                && player.x() == gamecell.x() + offset_x
+                                && player.y() == (gamecell.y() - 1) + offset_y
                             {
                                 game_events.post_event(
                                     format!(
@@ -79,15 +76,15 @@ impl TuiSystem {
                             }
                         }
                         if !collided {
-                            offset_y -= 1.0;
+                            offset_y -= 1;
                         }
                     }
                     KeyCode::Down => {
                         let mut collided = false;
                         for (gamecell, _) in read_query.iter_immutable(world) {
                             if gamecell.access() == CellAccess::Impassable
-                                && (player.x() - gamecell.x() as f64 - offset_x).abs() < 1.0
-                                && (player.y() - (gamecell.y() + 1) as f64 - offset_y).abs() < 1.0
+                                && player.x() == gamecell.x() + offset_x
+                                && player.y() == (gamecell.y() + 1) + offset_y
                             {
                                 game_events.post_event(
                                     format!(
@@ -103,15 +100,15 @@ impl TuiSystem {
                             }
                         }
                         if !collided {
-                            offset_y += 1.0;
+                            offset_y += 1;
                         }
                     }
                     KeyCode::Left => {
                         let mut collided = false;
                         for (gamecell, _) in read_query.iter_immutable(world) {
                             if gamecell.access() == CellAccess::Impassable
-                                && (player.x() - (gamecell.x() + 1) as f64 - offset_x).abs() < 1.0
-                                && (player.y() - gamecell.y() as f64 - offset_y).abs() < 1.0
+                                && player.x() == (gamecell.x() + 1) + offset_x
+                                && player.y() == gamecell.y() + offset_y
                             {
                                 game_events.post_event(
                                     format!(
@@ -127,15 +124,15 @@ impl TuiSystem {
                             }
                         }
                         if !collided {
-                            offset_x += 1.0;
+                            offset_x += 1;
                         }
                     }
                     KeyCode::Right => {
                         let mut collided = false;
                         for (gamecell, _) in read_query.iter_immutable(world) {
                             if gamecell.access() == CellAccess::Impassable
-                                && (player.x() - (gamecell.x() - 1) as f64 - offset_x).abs() < 1.0
-                                && (player.y() - gamecell.y() as f64 - offset_y).abs() < 1.0
+                                && player.x() == (gamecell.x() - 1) + offset_x
+                                && player.y() == gamecell.y() + offset_y
                             {
                                 game_events.post_event(
                                     format!(
@@ -151,7 +148,7 @@ impl TuiSystem {
                             }
                         }
                         if !collided {
-                            offset_x -= 1.0;
+                            offset_x -= 1;
                         }
                     }
                     KeyCode::Char('q') => {
@@ -167,12 +164,12 @@ impl TuiSystem {
 
             for (gamecell, mut visible) in write_query.iter(world) {
                 if gamecell.inside(
-                    player.x() as u16 - 3,
-                    player.y() as u16 - 3,
-                    player.x() as u16 + 3,
-                    player.y() as u16 + 3,
-                    offset_x as i16,
-                    offset_y as i16,
+                    player.x() - 4,
+                    player.y() - 4,
+                    player.x() + 4,
+                    player.y() + 4,
+                    offset_x,
+                    offset_y,
                 ) {
                     *visible = CellVisibility::Visible;
                 } else if *visible == CellVisibility::Visible {
@@ -186,13 +183,13 @@ impl TuiSystem {
                     && gamecell.inside(
                         1,
                         1,
-                        term_width,
-                        term_height,
-                        offset_x as i16,
-                        offset_y as i16,
+                        term_width as i32,
+                        term_height as i32,
+                        offset_x,
+                        offset_y,
                     )
-                    && (player.x() - gamecell.x() as f64 - offset_x).abs() < 1.0
-                    && (player.y() - gamecell.y() as f64 - offset_y).abs() < 1.0
+                    && player.x() == gamecell.x() + offset_x
+                    && player.y() == gamecell.y() + offset_y
                 {
                     game_events.post_event(
                         format!(
@@ -251,10 +248,10 @@ impl TuiSystem {
                                     && gamecell.inside(
                                         1,
                                         1,
-                                        term_width,
-                                        term_height,
-                                        offset_x as i16,
-                                        offset_y as i16,
+                                        term_width as i32,
+                                        term_height as i32,
+                                        offset_x,
+                                        offset_y,
                                     )
                                 {
                                     let symbol = match gamecell.kind() {
@@ -271,22 +268,27 @@ impl TuiSystem {
                                     };
                                     if *visible == CellVisibility::Visible {
                                         ctx.print(
-                                            gamecell.x() as f64 + offset_x,
-                                            gamecell.y() as f64 + offset_y,
+                                            (gamecell.x() + offset_x) as f64,
+                                            (gamecell.y() + offset_y) as f64,
                                             symbol,
                                             gamecell.color(),
                                         );
                                     } else {
                                         ctx.print(
-                                            gamecell.x() as f64 + offset_x,
-                                            gamecell.y() as f64 + offset_y,
+                                            (gamecell.x() + offset_x) as f64,
+                                            (gamecell.y() + offset_y) as f64,
                                             symbol,
                                             Color::DarkGray,
                                         );
                                     }
                                 }
                             }
-                            ctx.print(player.x(), player.y(), "@", Color::Rgb(0, 255, 0));
+                            ctx.print(
+                                player.x() as f64,
+                                player.y() as f64,
+                                "@",
+                                Color::Rgb(0, 255, 0),
+                            );
                         })
                         .x_bounds([2.0, canvas_width as f64])
                         .y_bounds([2.0, canvas_height as f64])

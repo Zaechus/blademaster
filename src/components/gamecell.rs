@@ -4,8 +4,8 @@ use crate::{CellAccess, CellKind};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct GameCell {
-    x: i16,
-    y: i16,
+    x: i32,
+    y: i32,
     kind: CellKind,
     name: String,
     color: Color,
@@ -14,8 +14,8 @@ pub struct GameCell {
 
 impl GameCell {
     pub fn new(
-        x: i16,
-        y: i16,
+        x: i32,
+        y: i32,
         kind: CellKind,
         name: &str,
         color: Color,
@@ -44,25 +44,17 @@ impl GameCell {
         self.x += 1;
     }
 
-    pub fn inside(&self, x1: u16, y1: u16, x2: u16, y2: u16, offset_x: i16, offset_y: i16) -> bool {
+    pub fn inside(&self, x1: i32, y1: i32, x2: i32, y2: i32, offset_x: i32, offset_y: i32) -> bool {
         let x = self.x + offset_x;
         let y = self.y + offset_y;
-        x >= x1 as i16 && y >= y1 as i16 && x <= x2 as i16 && y <= y2 as i16
+        x >= x1 && y >= y1 && x <= x2 && y <= y2
     }
 
-    pub fn x(&self) -> u16 {
-        if self.x > 0 {
-            self.x as u16
-        } else {
-            1
-        }
+    pub fn x(&self) -> i32 {
+        self.x
     }
-    pub fn y(&self) -> u16 {
-        if self.y > 0 {
-            self.y as u16
-        } else {
-            1
-        }
+    pub fn y(&self) -> i32 {
+        self.y
     }
     pub fn kind(&self) -> CellKind {
         self.kind

@@ -6,15 +6,15 @@ use tui::{
 };
 
 pub struct Player {
-    x: f64,
-    y: f64,
+    x: i32,
+    y: i32,
     lvl: u32,
     hp: (i32, u32),
     xp: (i32, u32),
 }
 
 impl Player {
-    pub fn new(x: f64, y: f64) -> Self {
+    pub fn new(x: i32, y: i32) -> Self {
         Self {
             x,
             y,
@@ -41,10 +41,10 @@ impl Player {
         list
     }
 
-    pub fn x(&self) -> f64 {
+    pub fn x(&self) -> i32 {
         self.x
     }
-    pub fn y(&self) -> f64 {
+    pub fn y(&self) -> i32 {
         self.y
     }
 }

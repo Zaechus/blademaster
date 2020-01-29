@@ -49,8 +49,8 @@ fn main() {
             if c == '#' {
                 positions.push((
                     GameCell::new(
-                        x as i16 + 10,
-                        y as i16 + 5,
+                        x as i32 + 10,
+                        y as i32 + 5,
                         CellKind::Wall,
                         "wall",
                         Color::Gray,
@@ -61,8 +61,8 @@ fn main() {
             } else {
                 positions.push((
                     GameCell::new(
-                        x as i16 + 10,
-                        y as i16 + 5,
+                        x as i32 + 10,
+                        y as i32 + 5,
                         CellKind::Floor,
                         "floor",
                         Color::Gray,
@@ -79,8 +79,8 @@ fn main() {
     for x in 0..100 {
         positions.push((
             GameCell::new(
-                x as i16,
-                15,
+                x as i32,
+                17,
                 CellKind::Wall,
                 "wall",
                 Color::Gray,
