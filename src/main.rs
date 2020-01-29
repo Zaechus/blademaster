@@ -91,6 +91,22 @@ fn main() {
     }
     world.insert((), positions.into_iter());
 
+    let mut positions = Vec::with_capacity(70);
+    for y in 0..100 {
+        positions.push((
+            GameCell::new(
+                -17,
+                y as i32,
+                CellKind::Tunnel,
+                "tunnel",
+                Color::Gray,
+                CellAccess::Static,
+            ),
+            CellVisibility::Unvisited,
+        ));
+    }
+    world.insert((), positions.into_iter());
+
     let tui_sys = Box::new(|world: &mut World| {
         TuiSystem::run(world);
     });

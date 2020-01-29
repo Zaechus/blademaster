@@ -264,6 +264,7 @@ impl TuiSystem {
                                         CellKind::ClosedDoor => "+",
                                         CellKind::OpenedDoor => "'",
                                         CellKind::Wall => "#",
+                                        CellKind::Tunnel => "░",
                                         CellKind::Floor => ".",
                                     };
                                     if *visible == CellVisibility::Visible {

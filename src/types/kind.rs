@@ -16,5 +16,6 @@ pub enum CellKind {
     ClosedDoor,
     OpenedDoor,
     Wall,
+    Tunnel,
     Floor,
 }

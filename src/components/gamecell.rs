@@ -25,23 +25,10 @@ impl GameCell {
             x,
             y,
             kind,
-            name: name.to_string(),
+            name: name.to_owned(),
             color,
             access,
         }
-    }
-
-    pub fn move_up(&mut self) {
-        self.y -= 1;
-    }
-    pub fn move_down(&mut self) {
-        self.y += 1;
-    }
-    pub fn move_left(&mut self) {
-        self.x -= 1;
-    }
-    pub fn move_right(&mut self) {
-        self.x += 1;
     }
 
     pub fn inside(&self, x1: i32, y1: i32, x2: i32, y2: i32, offset_x: i32, offset_y: i32) -> bool {
