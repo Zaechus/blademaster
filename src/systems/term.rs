@@ -43,7 +43,7 @@ impl TuiSystem {
         let canvas_width = term_width - 25;
         let canvas_height = term_height - 8;
 
-        let player = Player::new(canvas_width as i32 / 2, canvas_height as i32 / 2);
+        let mut player = Player::new(canvas_width as i32 / 2, canvas_height as i32 / 2);
 
         let mut game_events = GameEvents::new();
 
@@ -162,12 +162,16 @@ impl TuiSystem {
                 }
             }
 
+            for (gamecell, _) in write_query.iter(world) {
+                player.reduce_sight(&*gamecell, offset_x, offset_y);
+            }
+
             for (gamecell, mut visible) in write_query.iter(world) {
                 if gamecell.inside(
-                    player.x() - 4,
-                    player.y() - 4,
-                    player.x() + 4,
-                    player.y() + 4,
+                    player.x() - player.sight().0,
+                    player.y() - player.sight().1,
+                    player.x() + player.sight().2,
+                    player.y() + player.sight().3,
                     offset_x,
                     offset_y,
                 ) {
@@ -267,7 +271,14 @@ impl TuiSystem {
                                         CellKind::Tunnel => "░",
                                         CellKind::Floor => ".",
                                     };
-                                    if *visible == CellVisibility::Visible {
+                                    if gamecell.inside(
+                                        player.x() - player.sight().0,
+                                        player.y() - player.sight().1,
+                                        player.x() + player.sight().2,
+                                        player.y() + player.sight().3,
+                                        offset_x,
+                                        offset_y,
+                                    ) {
                                         ctx.print(
                                             (gamecell.x() + offset_x) as f64,
                                             (gamecell.y() + offset_y) as f64,
@@ -308,6 +319,8 @@ impl TuiSystem {
                         .render(&mut f, bottom_chunks[1]);
                 })
                 .unwrap();
+
+            player.default_sight();
         }
     }
 }
