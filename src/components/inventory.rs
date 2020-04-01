@@ -1,13 +1,6 @@
-use std::borrow::Cow;
+use super::GameCell;
 
-use tui::{
-    style::{Color, Style},
-    widgets::Text,
-};
-
-use crate::GameCell;
-
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Inventory {
     cap: usize,
     contents: Vec<GameCell>,
@@ -21,13 +14,10 @@ impl Inventory {
         }
     }
 
-    pub fn list<'a>(&self) -> Vec<Text<'a>> {
+    pub fn list(&self) -> Vec<String> {
         let mut list = Vec::with_capacity(self.cap);
         for gc in self.contents.iter() {
-            list.push(Text::Styled(
-                Cow::from(gc.name()),
-                Style::default().fg(Color::Blue),
-            ));
+            list.push(gc.name());
         }
         list
     }

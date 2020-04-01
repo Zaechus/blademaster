@@ -1,15 +1,9 @@
-use std::borrow::Cow;
+use bracket_lib::prelude::*;
 
-use tui::{
-    style::{Color, Style},
-    widgets::Text,
-};
-
-use crate::{CellAccess, GameCell};
+use crate::{components::GameCell, types::CellAccess};
 
 pub struct Player {
-    x: i32,
-    y: i32,
+    point: Point,
     lvl: u32,
     hp: (i32, u32),
     xp: (i32, u32),
@@ -17,10 +11,9 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(x: i32, y: i32) -> Self {
+    pub fn new(point: Point) -> Self {
         Self {
-            x,
-            y,
+            point,
             lvl: 1,
             hp: (10, 10),
             xp: (10, 10),
@@ -28,20 +21,12 @@ impl Player {
         }
     }
 
-    pub fn list<'a>(&self) -> Vec<Text<'a>> {
+    pub fn list(&self) -> Vec<String> {
         let mut list = Vec::with_capacity(3);
-        list.push(Text::Styled(
-            Cow::from(format!("Level: {}", self.lvl)),
-            Style::default().fg(Color::Blue),
-        ));
-        list.push(Text::Styled(
-            Cow::from(format!("HP: {} / {}", self.hp.0, self.hp.1)),
-            Style::default().fg(Color::Blue),
-        ));
-        list.push(Text::Styled(
-            Cow::from(format!("XP: {} / {}", self.xp.0, self.xp.1)),
-            Style::default().fg(Color::Blue),
-        ));
+
+        list.push(format!("Level: {}", self.lvl));
+        list.push(format!("HP: {} / {}", self.hp.0, self.hp.1));
+        list.push(format!("XP: {} / {}", self.xp.0, self.xp.1));
         list
     }
 
@@ -111,10 +96,10 @@ impl Player {
     }
 
     pub fn x(&self) -> i32 {
-        self.x
+        self.point.x
     }
     pub fn y(&self) -> i32 {
-        self.y
+        self.point.y
     }
     pub fn sight(&self) -> (i32, i32, i32, i32) {
         self.sight

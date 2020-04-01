@@ -19,3 +19,21 @@ pub enum CellKind {
     Tunnel,
     Floor,
 }
+
+impl CellKind {
+    pub fn symbol(self) -> char {
+        match self {
+            CellKind::SoftArmor => '(',
+            CellKind::HardArmor => '[',
+            CellKind::BluntWeapon => '\\',
+            CellKind::EdgedWeapon => '|',
+            CellKind::PointedWeapon => '/',
+            CellKind::RangedWeapon => '}',
+            CellKind::ClosedDoor => '+',
+            CellKind::OpenedDoor => '\'',
+            CellKind::Wall => '#',
+            CellKind::Tunnel => '░',
+            CellKind::Floor => '.',
+        }
+    }
+}
