@@ -22,12 +22,6 @@ impl GameCell {
         }
     }
 
-    pub fn inside(&self, x1: i32, y1: i32, x2: i32, y2: i32, offset_x: i32, offset_y: i32) -> bool {
-        let x = self.point.x + offset_x;
-        let y = self.point.y + offset_y;
-        x >= x1 && y >= y1 && x <= x2 && y <= y2
-    }
-
     pub fn point(&self) -> Point {
         self.point
     }
@@ -51,9 +45,6 @@ impl GameCell {
     /// Return a black background for the cell
     pub fn bg_color(&self) -> RGB {
         RGB::new()
-    }
-    pub fn kind(&self) -> CellKind {
-        self.kind
     }
     pub fn name(&self) -> String {
         self.name.clone()

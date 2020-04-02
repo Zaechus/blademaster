@@ -3,12 +3,14 @@ use bracket_lib::prelude::*;
 use legion::prelude::*;
 
 use crate::{
-    components::{CellVisibility, GameCell},
-    types::{CellAccess, CellKind, Player},
+    components::{CellVisibility, GameCell, Inventory},
+    types::{CellAccess, CellKind, GameEvents, Player},
 };
 
+const GREEN: (u8, u8, u8) = (0, 170, 0);
 const GRAY: (u8, u8, u8) = (150, 150, 150);
 const DARK_GRAY: (u8, u8, u8) = (100, 100, 100);
+const WHITE: (u8, u8, u8) = (255, 255, 255);
 
 #[derive(Clone, Debug)]
 pub enum CurrentState {
@@ -23,6 +25,8 @@ pub struct State {
     curr_state: CurrentState,
     world: World,
     player: Player,
+    inventory: Inventory,
+    game_events: GameEvents,
     window_size: (u32, u32),
     tic: u8,
     offset: (i32, i32),
@@ -134,6 +138,8 @@ impl State {
             curr_state: CurrentState::Menu,
             world,
             player: Player::new(Point::new(w as i32 / 2, h as i32 / 2)),
+            inventory: Inventory::new(),
+            game_events: GameEvents::new(),
             window_size: (w, h),
             tic: 0,
             offset: (0, 0),
@@ -157,8 +163,6 @@ impl State {
     }
 
     fn play_state(&mut self, ctx: &mut BTerm) {
-        // self.print_grid(ctx);
-
         ctx.print_color(
             self.mouse.x,
             self.mouse.y,
@@ -167,68 +171,117 @@ impl State {
             &self.cursor,
         );
 
-        self.update_cells(ctx);
+        self.render_cells(ctx);
 
         ctx.print_color(
-            self.player.x(),
-            self.player.y(),
+            self.window_size.0 as i32 / 2,
+            self.window_size.1 as i32 / 2,
             RGB::named((0, 255, 0)),
             RGB::new(),
             "@",
         );
 
-        self.player.default_sight();
+        self.game_events.print(ctx, self.window_size);
+        self.player.print_info(ctx, self.window_size);
+        self.inventory.print(ctx, self.window_size);
+
+        self.discover_cells();
+
+        self.take_items();
 
         match self.mouse_click {
             _ => (),
         }
 
         self.key_input(ctx);
+
+        self.player.default_sight();
     }
 
     fn key_input(&mut self, ctx: &mut BTerm) {
         if let Some(key) = ctx.key {
             match key {
-                VirtualKeyCode::Up => self.offset.1 += 1,
-                VirtualKeyCode::Down => self.offset.1 -= 1,
-                VirtualKeyCode::Left => self.offset.0 += 1,
-                VirtualKeyCode::Right => self.offset.0 -= 1,
+                VirtualKeyCode::Up
+                | VirtualKeyCode::Down
+                | VirtualKeyCode::Left
+                | VirtualKeyCode::Right => {
+                    self.move_player(key);
+                }
+                VirtualKeyCode::I => self.inventory.toggle(),
                 VirtualKeyCode::End => self.curr_state = CurrentState::Quitting,
                 _ => (),
             }
         }
     }
 
-    fn update_cells(&mut self, ctx: &mut BTerm) {
+    fn move_player(&mut self, key: VirtualKeyCode) {
+        let mut a = 0;
+        let mut b = 0;
+
+        match key {
+            VirtualKeyCode::Up => {
+                a = 0;
+                b = 1;
+            }
+            VirtualKeyCode::Down => {
+                a = 0;
+                b = -1;
+            }
+            VirtualKeyCode::Left => {
+                a = 1;
+                b = 0;
+            }
+            VirtualKeyCode::Right => {
+                a = -1;
+                b = 0;
+            }
+            _ => (),
+        }
+
+        let query = <(Read<GameCell>,)>::query();
+
+        let mut collided = false;
+        for (cell,) in query.iter_immutable(&self.world) {
+            if cell.access() == CellAccess::Impassable
+                && self.player.x() == cell.x() + a
+                && self.player.y() == cell.y() + b
+            {
+                self.game_events.post_event(
+                    format!("You ran into the {}.", cell.name()),
+                    RGB::named(WHITE),
+                );
+                collided = true;
+                break;
+            }
+        }
+        if !collided {
+            self.offset.0 += a;
+            self.offset.1 += b;
+            self.player.move_pos(-a, -b);
+        }
+    }
+
+    fn render_cells(&mut self, ctx: &mut BTerm) {
         let query = <(Read<GameCell>, Read<CellVisibility>)>::query();
 
-        for (cell, _) in query.iter(&mut self.world) {
-            if Rect::with_exact(
-                -self.offset.0,
-                -self.offset.1,
-                self.window_size.0 as i32 - self.offset.0,
-                self.window_size.1 as i32 - self.offset.1,
-            )
-            .point_in_rect(cell.point())
+        for (cell, visible) in query.iter(&mut self.world) {
+            if *visible != CellVisibility::Unvisited
+                && Rect::with_exact(
+                    -self.offset.0,
+                    -self.offset.1,
+                    self.window_size.0 as i32 - self.offset.0,
+                    self.window_size.1 as i32 - self.offset.1,
+                )
+                .point_in_rect(cell.point())
             {
-                // if *visible != CellVisibility::Unvisited
-                //     && cell.inside(
-                //         1,
-                //         1,
-                //         self.window_size.0 as i32,
-                //         self.window_size.1 as i32,
-                //         self.offset.0,
-                //         self.offset.1,
-                //     )
-                // {
-                if cell.inside(
+                if Rect::with_exact(
                     self.player.x() - self.player.sight().0,
                     self.player.y() - self.player.sight().1,
                     self.player.x() + self.player.sight().2,
                     self.player.y() + self.player.sight().3,
-                    self.offset.0,
-                    self.offset.1,
-                ) {
+                )
+                .point_in_rect(cell.point())
+                {
                     ctx.print_color(
                         cell.x() + self.offset.0,
                         cell.y() + self.offset.1,
@@ -251,8 +304,49 @@ impl State {
                         &cell.symbol().to_string(),
                     );
                 }
-                // }
             }
+        }
+    }
+
+    fn discover_cells(&mut self) {
+        let query = <(Read<GameCell>, Write<CellVisibility>)>::query();
+
+        for (cell, mut visible) in query.iter(&mut self.world) {
+            if Rect::with_exact(
+                self.player.x() - self.player.sight().0,
+                self.player.y() - self.player.sight().1,
+                self.player.x() + self.player.sight().2,
+                self.player.y() + self.player.sight().3,
+            )
+            .point_in_rect(cell.point())
+            {
+                *visible = CellVisibility::Visible;
+            } else if *visible == CellVisibility::Visible {
+                *visible = CellVisibility::Dark;
+            }
+        }
+    }
+
+    fn take_items(&mut self) {
+        let query = <(Read<GameCell>,)>::query();
+
+        let mut taken = None;
+        for (entity, (cell,)) in query.iter_entities_immutable(&self.world) {
+            if cell.access() == CellAccess::Takeable
+                && self.player.x() == cell.x()
+                && self.player.y() == cell.y()
+            {
+                self.game_events.post_event(
+                    format!("You now have the {}.", cell.name()),
+                    RGB::named(GREEN),
+                );
+                self.inventory.take((*cell).clone());
+                taken = Some(entity);
+                break;
+            }
+        }
+        if let Some(entity) = taken {
+            self.world.delete(entity);
         }
     }
 
@@ -292,179 +386,6 @@ impl GameState for State {
             CurrentState::Playing => self.play_state(ctx),
             CurrentState::Quitting => self.quit_state(ctx),
         }
-
-        // let read_query = <(Read<GameCell>, Read<CellVisibility>)>::query();
-        // let write_query = <(Read<GameCell>, Write<CellVisibility>)>::query();
-
-        // let mut game_events = GameEvents::new();
-
-        // let mut inventory = Inventory::new();
-
-        //     if let Event::Key(key) = event::read().unwrap() {
-        //         match key.code {
-        //             KeyCode::Up => {
-        //                 let mut collided = false;
-        //                 for (gamecell, _) in read_query.iter_immutable(world) {
-        //                     if gamecell.access() == CellAccess::Impassable
-        //                         && player.x() == gamecell.x() + self.offset.0
-        //                         && player.y() == (gamecell.y() - 1) + self.offset.1
-        //                     {
-        //                         game_events.post_event(
-        //                             format!(
-        //                                 "You ran into the {}.{space:>width$}",
-        //                                 gamecell.name(),
-        //                                 space = " ",
-        //                                 width = canvas_width as usize / 2,
-        //                             ),
-        //                             Color::Blue,
-        //                         );
-        //                         collided = true;
-        //                         break;
-        //                     }
-        //                 }
-        //                 if !collided {
-        //                     self.offset.1 -= 1;
-        //                 }
-        //             }
-        //             KeyCode::Down => {
-        //                 let mut collided = false;
-        //                 for (gamecell, _) in read_query.iter_immutable(world) {
-        //                     if gamecell.access() == CellAccess::Impassable
-        //                         && player.x() == gamecell.x() + self.offset.0
-        //                         && player.y() == (gamecell.y() + 1) + self.offset.1
-        //                     {
-        //                         game_events.post_event(
-        //                             format!(
-        //                                 "You ran into the {}.{space:>width$}",
-        //                                 gamecell.name(),
-        //                                 space = " ",
-        //                                 width = canvas_width as usize / 2,
-        //                             ),
-        //                             Color::Blue,
-        //                         );
-        //                         collided = true;
-        //                         break;
-        //                     }
-        //                 }
-        //                 if !collided {
-        //                     self.offset.1 += 1;
-        //                 }
-        //             }
-        //             KeyCode::Left => {
-        //                 let mut collided = false;
-        //                 for (gamecell, _) in read_query.iter_immutable(world) {
-        //                     if gamecell.access() == CellAccess::Impassable
-        //                         && player.x() == (gamecell.x() + 1) + self.offset.0
-        //                         && player.y() == gamecell.y() + self.offset.1
-        //                     {
-        //                         game_events.post_event(
-        //                             format!(
-        //                                 "You ran into the {}.{space:>width$}",
-        //                                 gamecell.name(),
-        //                                 space = " ",
-        //                                 width = canvas_width as usize / 2,
-        //                             ),
-        //                             Color::Blue,
-        //                         );
-        //                         collided = true;
-        //                         break;
-        //                     }
-        //                 }
-        //                 if !collided {
-        //                     self.offset.0 += 1;
-        //                 }
-        //             }
-        //             KeyCode::Right => {
-        //                 let mut collided = false;
-        //                 for (gamecell, _) in read_query.iter_immutable(world) {
-        //                     if gamecell.access() == CellAccess::Impassable
-        //                         && player.x() == (gamecell.x() - 1) + self.offset.0
-        //                         && player.y() == gamecell.y() + self.offset.1
-        //                     {
-        //                         game_events.post_event(
-        //                             format!(
-        //                                 "You ran into the {}.{space:>width$}",
-        //                                 gamecell.name(),
-        //                                 space = " ",
-        //                                 width = canvas_width as usize / 2,
-        //                             ),
-        //                             Color::Blue,
-        //                         );
-        //                         collided = true;
-        //                         break;
-        //                     }
-        //                 }
-        //                 if !collided {
-        //                     self.offset.0 -= 1;
-        //                 }
-        //             }
-        //             KeyCode::Char('q') => {
-        //                 terminal.clear().unwrap();
-        //                 terminal.show_cursor().unwrap();
-        //                 disable_raw_mode().unwrap();
-        //                 execute!(terminal.backend_mut(), LeaveAlternateScreen).unwrap();
-        //                 process::exit(1);
-        //             }
-        //             _ => (),
-        //         }
-        //     }
-
-        //     for (gamecell, _) in write_query.iter(world) {
-        //         player.reduce_sight(&*gamecell, self.offset.0, self.offset.1);
-        //     }
-
-        //     for (gamecell, mut visible) in write_query.iter(world) {
-        //         if gamecell.inside(
-        //             player.x() - player.sight().0,
-        //             player.y() - player.sight().1,
-        //             player.x() + player.sight().2,
-        //             player.y() + player.sight().3,
-        //             self.offset.0,
-        //             self.offset.1,
-        //         ) {
-        //             *visible = CellVisibility::Visible;
-        //         } else if *visible == CellVisibility::Visible {
-        //             *visible = CellVisibility::Dark;
-        //         }
-        //     }
-
-        //     let mut taken = None;
-        //     for (entity, (gamecell, _)) in read_query.iter_entities_immutable(world) {
-        //         if gamecell.access() == CellAccess::Takeable
-        //             && gamecell.inside(
-        //                 1,
-        //                 1,
-        //                 term_width as i32,
-        //                 term_height as i32,
-        //                 self.offset.0,
-        //                 self.offset.1,
-        //             )
-        //             && player.x() == gamecell.x() + self.offset.0
-        //             && player.y() == gamecell.y() + self.offset.1
-        //         {
-        //             game_events.post_event(
-        //                 format!(
-        //                     "You now have the {}.{space:>width$}",
-        //                     gamecell.name(),
-        //                     space = " ",
-        //                     width = canvas_width as usize / 2,
-        //                 ),
-        //                 Color::Green,
-        //             );
-        //             inventory.take(gamecell.deref().clone());
-        //             taken = Some(entity);
-        //             break;
-        //         }
-        //     }
-        //     if let Some(entity) = taken {
-        //         world.delete(entity);
-        //     }
-        //                     ctx.print(
-        //                         player.x() as f64,
-        //                         player.y() as f64,
-        //                         "@",
-        //                         Color::Rgb(0, 255, 0),
-        //                     );
 
         self.mouse_click = None;
     }
