@@ -22,17 +22,17 @@ impl Player {
     pub fn print_info(&self, ctx: &mut BTerm, window_size: (u32, u32)) {
         ctx.print(
             window_size.0 as i32 - 15,
-            window_size.1 as i32 - 3,
+            window_size.1 as i32 - 4,
             format!("Level: {}", self.lvl),
         );
         ctx.print(
             window_size.0 as i32 - 15,
-            window_size.1 as i32 - 2,
+            window_size.1 as i32 - 3,
             format!("HP: {} / {}", self.hp.0, self.hp.1),
         );
         ctx.print(
             window_size.0 as i32 - 15,
-            window_size.1 as i32 - 1,
+            window_size.1 as i32 - 2,
             format!("XP: {} / {}", self.xp.0, self.xp.1),
         );
     }
