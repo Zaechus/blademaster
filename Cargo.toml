@@ -10,6 +10,7 @@ keywords = ["text", "game", "dungeon", "rogue", "roguelike"]
 categories = ["games", "game-engines"]
 
 [dependencies]
-legion = "0.2"
+legion = "0.3"
 rand = "0.7"
 bracket-lib = { git = "https://github.com/thebracket/bracket-lib", features = [ "threaded" ] }
+

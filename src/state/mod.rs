@@ -1,6 +1,6 @@
 use bracket_lib::prelude::*;
 
-use legion::prelude::*;
+use legion::*;
 
 use crate::{
     components::{CellVisibility, GameCell, Inventory},
@@ -38,8 +38,7 @@ pub struct State {
 
 impl State {
     pub fn new(w: u32, h: u32) -> Self {
-        let universe = Universe::new();
-        let mut world = universe.create_world();
+        let mut world = World::default();
 
         let positions = vec![
             (
@@ -63,7 +62,7 @@ impl State {
                 CellVisibility::Unvisited,
             ),
         ];
-        world.insert((), positions.into_iter());
+        world.extend(positions);
 
         let map = vec![
             "#.########",
@@ -102,7 +101,7 @@ impl State {
                 }
             }
         }
-        world.insert((), positions.into_iter());
+        world.extend(positions);
 
         let mut positions = Vec::with_capacity(70);
         for x in 0..100 {
@@ -117,7 +116,7 @@ impl State {
                 CellVisibility::Unvisited,
             ));
         }
-        world.insert((), positions.into_iter());
+        world.extend(positions);
 
         let mut positions = Vec::with_capacity(70);
         for y in 0..100 {
@@ -132,7 +131,7 @@ impl State {
                 CellVisibility::Unvisited,
             ));
         }
-        world.insert((), positions.into_iter());
+        world.extend(positions);
 
         Self {
             curr_state: CurrentState::Menu,
@@ -189,9 +188,9 @@ impl State {
 
         self.take_items();
 
-        match self.mouse_click {
+        /*match self.mouse_click {
             _ => (),
-        }
+        }*/
 
         self.key_input(ctx);
 
@@ -238,10 +237,10 @@ impl State {
             _ => (),
         }
 
-        let query = <(Read<GameCell>,)>::query();
+        let mut query = <(Read<GameCell>,)>::query();
 
         let mut collided = false;
-        for (cell,) in query.iter_immutable(&self.world) {
+        for (cell,) in query.iter(&self.world) {
             if cell.access() == CellAccess::Impassable
                 && self.player.x() == cell.x() + a
                 && self.player.y() == cell.y() + b
@@ -262,9 +261,9 @@ impl State {
     }
 
     fn render_cells(&mut self, ctx: &mut BTerm) {
-        let query = <(Read<GameCell>, Read<CellVisibility>)>::query();
+        let mut query = <(Read<GameCell>, Read<CellVisibility>)>::query();
 
-        for (cell, visible) in query.iter(&mut self.world) {
+        for (cell, visible) in query.iter(&self.world) {
             if *visible != CellVisibility::Unvisited
                 && Rect::with_exact(
                     -self.offset.0,
@@ -309,9 +308,9 @@ impl State {
     }
 
     fn discover_cells(&mut self) {
-        let query = <(Read<GameCell>, Write<CellVisibility>)>::query();
+        let mut query = <(Read<GameCell>, Write<CellVisibility>)>::query();
 
-        for (cell, mut visible) in query.iter(&mut self.world) {
+        for (cell, visible) in query.iter_mut(&mut self.world) {
             if Rect::with_exact(
                 self.player.x() - self.player.sight().0,
                 self.player.y() - self.player.sight().1,
@@ -328,25 +327,27 @@ impl State {
     }
 
     fn take_items(&mut self) {
-        let query = <(Read<GameCell>,)>::query();
+        let mut query = <(Read<GameCell>,)>::query();
 
         let mut taken = None;
-        for (entity, (cell,)) in query.iter_entities_immutable(&self.world) {
-            if cell.access() == CellAccess::Takeable
-                && self.player.x() == cell.x()
-                && self.player.y() == cell.y()
-            {
-                self.game_events.post_event(
-                    format!("You now have the {}.", cell.name()),
-                    RGB::named(GREEN),
-                );
-                self.inventory.take((*cell).clone());
-                taken = Some(entity);
-                break;
+        for chunk in query.iter_chunks(&self.world) {
+            for (entity, (cell,)) in chunk.into_iter_entities() {
+                if cell.access() == CellAccess::Takeable
+                    && self.player.x() == cell.x()
+                    && self.player.y() == cell.y()
+                {
+                    self.game_events.post_event(
+                        format!("You now have the {}.", cell.name()),
+                        RGB::named(GREEN),
+                    );
+                    self.inventory.take((*cell).clone());
+                    taken = Some(entity);
+                    break;
+                }
             }
         }
         if let Some(entity) = taken {
-            self.world.delete(entity);
+            self.world.remove(entity);
         }
     }
 
