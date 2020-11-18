@@ -12,5 +12,5 @@ categories = ["games", "game-engines"]
 [dependencies]
 legion = "0.3"
 rand = "0.7"
-bracket-lib = { git = "https://github.com/Maxgy/bracket-lib", features = [ "threaded" ] }
+bracket-lib = { git = "https://github.com/thebracket/bracket-lib", features = [ "threaded" ] }
 
